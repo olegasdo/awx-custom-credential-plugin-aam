@@ -14,15 +14,15 @@ setup(
     long_description='',
     license='Apache License 2.0',
     keywords='ansible',
-    url='http://github.com/ansible/awx-custom-credential-plugin-example',
-    packages=['db-cyberark-aam'],
+    url='https://github.com/olegasdo/awx-custom-credential-plugin-aam',
+    packages=['db_cyberark_aam'],
     include_package_data=True,
     zip_safe=False,
     setup_requires=[],
     install_requires=requirements,
     entry_points = {
         'awx.credential_plugins': [
-            'db_cyberark_aam=db-cyberark-aam:db_cyberark_aam',
+            'db_cyberark_aam=db_cyberark_aam:db_cyberark_aam',
         ]
     }
 )
