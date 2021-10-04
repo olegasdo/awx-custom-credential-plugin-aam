@@ -1,4 +1,4 @@
-from awx.main.credential_plugins.plugins import CredentialPlugin, CertFiles, raise_for_status
+from awx.main.credential_plugins.plugin import CredentialPlugin, CertFiles, raise_for_status
 
 from urllib.parse import quote, urlencode, urljoin
 
