@@ -22,7 +22,7 @@ setup(
     install_requires=requirements,
     entry_points = {
         'awx.credential_plugins': [
-            'db-cyberark-aam =   db-custom-aam:db-cyberark-aam',
+            'db-cyberark-aam=db-custom-aam:db-cyberark-aam',
         ]
     }
 )
