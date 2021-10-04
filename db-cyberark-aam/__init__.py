@@ -5,7 +5,7 @@ from urllib.parse import quote, urlencode, urljoin
 from django.utils.translation import ugettext_lazy as _
 import requests
 
-aim_inputs = {
+db_aim_inputs = {
     'fields': [
         {
             'id': 'url',
@@ -59,7 +59,7 @@ aim_inputs = {
 }
 
 
-def aim_backend(**kwargs):
+def db_aim_backend(**kwargs):
     url = kwargs['url']
     client_cert = kwargs.get('client_cert', None)
     client_key = kwargs.get('client_key', None)
@@ -92,4 +92,4 @@ def aim_backend(**kwargs):
     return res.json()['Content']
 
 
-aim_plugin = CredentialPlugin('CyberArk AIM Central Credential Provider Lookup', inputs=aim_inputs, backend=aim_backend)
+db_cyberark_aam = CredentialPlugin('DB CyberArk AIM Central Credential Provider Lookup', inputs=db_aim_inputs, backend=db_aim_backend)
