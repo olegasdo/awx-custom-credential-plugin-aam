@@ -7,7 +7,7 @@ requirements = []  # add Python dependencies here
 
 setup(
     name='db-cyberark-aam',
-    version='0.1',
+    version='0.2',
     author='Danske Bank, A/S',
     author_email='odo@danskebank.lt',
     description='',
@@ -22,7 +22,7 @@ setup(
     install_requires=requirements,
     entry_points = {
         'awx.credential_plugins': [
-            'db_cyberark_aam=db_cyberark_aam:db_cyberark_aam',
+            'db_aam_plugin=db_cyberark_aam:db_aam_plugin',
         ]
     }
 )
