@@ -1,74 +1,95 @@
-import collections
+from .plugin import CredentialPlugin, CertFiles, raise_for_status
 
-CredentialPlugin = collections.namedtuple('CredentialPlugin', ['name', 'inputs', 'backend'])
+from urllib.parse import quote, urlencode, urljoin
 
-def some_lookup_function(**kwargs):
-    #
-    # IMPORTANT:
-    # replace this section of code with Python code that *actually*
-    # interfaces with some third party credential system
-    # (*this* code is just provided for the sake of example)
-    #
-    url = kwargs.get('url')
-    token = kwargs.get('token')
-    identifier = kwargs.get('identifier')
+from django.utils.translation import ugettext_lazy as _
+import requests
 
-    if token != 'VALID':
-        raise ValueError('Invalid token!')
-
-    value = {
-        'username': 'mary',
-        'email': 'mary@example.org',
-        'password': 'super-secret'
-    }
-
-    if identifier in value:
-        return value[identifier]
-
-    raise ValueError(f'Could not find a value for {identifier}.')
-
-example_plugin = CredentialPlugin(
-    'Example AWX Credential Plugin',
-    # see: https://docs.ansible.com/ansible-tower/latest/html/userguide/credential_types.html
-    # inputs will be used to create a new CredentialType() instance
-    #
-    # inputs.fields represents fields the user will specify *when they create*
-    # a credential of this type; they generally represent fields
-    # used for authentication (URL to the credential management system, any
-    # fields necessary for authentication, such as an OAuth2.0 token, or
-    # a username and password). They're the types of values you set up _once_
-    # in AWX
-    #
-    # inputs.metadata represents values the user will specify *every time
-    # they link two credentials together*
-    # this is generally _pathing_ information about _where_ in the external
-    # management system you can find the value you care about i.e.,
-    #
-    # "I would like Machine Credential A to retrieve its username using
-    # Credential-O-Matic B at identifier=some_key"
-    inputs={
-        'fields': [{
+aim_inputs = {
+    'fields': [
+        {
             'id': 'url',
-            'label': 'Server URL',
+            'label': _('CyberArk AIM URL'),
             'type': 'string',
-        }, {
-            'id': 'token',
-            'label': 'Authentication Token',
+            'format': 'url',
+        },
+        {
+            'id': 'app_id',
+            'label': _('Application ID'),
             'type': 'string',
             'secret': True,
-        }],
-        'metadata': [{
-            'id': 'identifier',
-            'label': 'Identifier',
+        },
+        {
+            'id': 'client_key',
+            'label': _('Client Key'),
             'type': 'string',
-            'help_text': 'The name of the key in My Credential System to fetch.'
-        }],
-        'required': ['url', 'token', 'secret_key'],
-    },
-    # backend is a callable function which will be passed all of the values
-    # defined in `inputs`; this function is responsible for taking the arguments,
-    # interacting with the third party credential management system in question
-    # using Python code, and returning the value from the third party
-    # credential management system
-    backend = some_lookup_function
-)
+            'secret': True,
+            'multiline': True,
+        },
+        {
+            'id': 'client_cert',
+            'label': _('Client Certificate'),
+            'type': 'string',
+            'secret': True,
+            'multiline': True,
+        },
+        {
+            'id': 'verify',
+            'label': _('Verify SSL Certificates'),
+            'type': 'boolean',
+            'default': True,
+        },
+    ],
+    'metadata': [
+        {
+            'id': 'object_query',
+            'label': _('Object Query'),
+            'type': 'string',
+            'help_text': _('Lookup query for the object. Ex: Safe=TestSafe;Object=testAccountName123'),
+        },
+        {'id': 'object_query_format', 'label': _('Object Query Format'), 'type': 'string', 'default': 'Exact', 'choices': ['Exact', 'Regexp']},
+        {
+            'id': 'reason',
+            'label': _('Reason'),
+            'type': 'string',
+            'help_text': _('Object request reason. This is only needed if it is required by the object\'s policy.'),
+        },
+    ],
+    'required': ['url', 'app_id', 'object_query'],
+}
+
+
+def aim_backend(**kwargs):
+    url = kwargs['url']
+    client_cert = kwargs.get('client_cert', None)
+    client_key = kwargs.get('client_key', None)
+    verify = kwargs['verify']
+    app_id = kwargs['app_id']
+    object_query = kwargs['object_query']
+    object_query_format = kwargs['object_query_format']
+    reason = kwargs.get('reason', None)
+
+    query_params = {
+        'AppId': app_id,
+        'Query': object_query,
+        'QueryFormat': object_query_format,
+    }
+    if reason:
+        query_params['reason'] = reason
+
+    request_qs = '?' + urlencode(query_params, quote_via=quote)
+    request_url = urljoin(url, '/'.join(['AIMWebService', 'api', 'Accounts']))
+
+    with CertFiles(client_cert, client_key) as cert:
+        res = requests.get(
+            request_url + request_qs,
+            timeout=30,
+            cert=cert,
+            verify=verify,
+            allow_redirects=False,
+        )
+    raise_for_status(res)
+    return res.json()['Content']
+
+
+aim_plugin = CredentialPlugin('CyberArk AIM Central Credential Provider Lookup', inputs=aim_inputs, backend=aim_backend)
